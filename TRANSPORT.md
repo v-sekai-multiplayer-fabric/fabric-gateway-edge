@@ -31,7 +31,7 @@ cert resolution, the `-t` and `-k` flags, and the `TLS_CERT` and `TLS_KEY` fallb
 plane does not need any of it, so it is gone from there.
 
 That code is not lost. It is in the history of this repository, in the squashed subtree
-commit for `native/gyreplane`. Recover it when the edge gains its own entry point.
+commit for `zone-server-h2o`. Recover it when the edge gains its own entry point.
 
 There is no `CMakeLists.txt` here yet. The transport had no `main` of its own. It was
 called from the plane, and neither `../ingest` nor `../gateway` exists yet.
@@ -66,7 +66,7 @@ the key were `NULL`. So a browser could not connect, and that gap is now the edg
 picoquic, by Christian Huitema. <https://github.com/private-octopus/picoquic>
 
 It terminates QUIC and WebTransport. The citation entry moved out of
-`../gyreplane/CITATION.cff` with the code, because that plane no longer uses it.
+`zone-server-h2o`'s `CITATION.cff` with the code, because that plane no longer uses it.
 
 The browser client that arrived in the same subtree is gone. A client is not an edge, and
 `zone-guest-gyre` maintains it.

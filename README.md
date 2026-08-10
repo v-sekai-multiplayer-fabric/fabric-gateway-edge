@@ -1,8 +1,19 @@
-# native/edge
+# fabric-edge
+
+Split out of [`weft`](https://github.com/v-sekai-multiplayer-fabric/weft) with its
+history. weft keeps only the data plane and the NIF the BEAM loads. An edge is its own
+process, its own repository, and its own container.
+
+`thirdparty/harness` is
+[`fabric-harness`](https://github.com/v-sekai-multiplayer-fabric/fabric-harness), pulled
+in as a subtree. It carries the iceoryx2 C ABI and the shared limits, and both edges link
+it rather than linking iceoryx2.
+
 
 The two edges. An edge is a plane with networking.
 
-`Weft` defines both. This directory holds the code, and that moduledoc holds the reason.
+weft's `lib/weft.ex` defines both. This repository holds the code, and that moduledoc
+holds the reason.
 
 | directory | edge | terminates | gives the result to |
 | --- | --- | --- | --- |
@@ -55,5 +66,5 @@ the two binaries in this repository that broke the rule against committing a bin
 and they left with it. `zone-guest-gyre` maintains the client, which is where a client
 belongs.
 
-**A deployment.** `deploy/` holds every ship and run artifact, and `native/` holds source.
-`native/dataplane` is the pattern: a `CMakeLists.txt` and a `src`, and nothing else.
+**A deployment.** weft's `deploy/` holds every ship and run artifact. An edge is a
+container that weft supervises, and the unit that starts it lives there.

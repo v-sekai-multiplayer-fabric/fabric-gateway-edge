@@ -24,7 +24,7 @@ gone.
 
 ## The numbers it has to meet
 
-`../../../docs/logbook/data_plane.md` holds the measurements and the conditions
+weft's `docs/logbook/data_plane.md` holds the measurements and the conditions
 each one ran under. Two of them bound this edge.
 
 The compute ceiling for decode and apply is 1.21 ns for each packet on one core, with the
@@ -36,6 +36,6 @@ loopback cannot close it.
 
 ## What it needs first
 
-1. **iceoryx2**, to reach the game data plane. Not in the container image.
+1. **iceoryx2**, to reach the game data plane, through `../thirdparty/harness`.
 2. **The thread-per-core harness.** Every plane uses it, so it is built once.
 3. **picoquic**, in `../transport`. That part is here already.
