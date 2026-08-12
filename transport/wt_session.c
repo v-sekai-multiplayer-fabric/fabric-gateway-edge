@@ -69,11 +69,12 @@ static int zone_wt_connect_callback(picoquic_cnx_t *cnx, uint8_t *bytes, size_t 
                                      picohttp_call_back_event_t wt_event,
                                      h3zero_stream_ctx_t *stream_ctx, void *path_app_ctx)
 {
-    (void)cnx;
     (void)bytes;
     (void)length;
 
     if (wt_event == picohttp_callback_connect) {
+        h3zero_callback_ctx_t *h3_ctx;
+
         /* picowt_select_wt_protocol's own doc comment: it returns -1 "if
          * no common protocol is found, including if the peer did not
          * provide a WT_AVAILABLE_PROTOCOLS header" -- i.e. a plain
@@ -88,12 +89,33 @@ static int zone_wt_connect_callback(picoquic_cnx_t *cnx, uint8_t *bytes, size_t 
         (void)picowt_select_wt_protocol(stream_ctx, "zone");
         stream_ctx->path_callback = zone_wt_session_callback;
         stream_ctx->path_callback_ctx = path_app_ctx;
+
+        /* Accepting the CONNECT is not the same as joining the session to
+         * its streams, and stopping at the two lines above is the second
+         * bug this commit fixes. Every stream a client opens inside the
+         * session carries the control stream's id as its prefix, and
+         * h3zero routes an arriving stream by looking that prefix up
+         * (h3zero_find_stream_prefix). Undeclared, the lookup misses and
+         * h3zero resets each stream on arrival -- observed as
+         * "Received RESET_STREAM" in Chromium, on a session that had
+         * otherwise negotiated cleanly.
+         *
+         * wt_baton.c does exactly this in wt_baton_ctx_init, under the
+         * comment "Register the control stream and the stream id". */
+        h3_ctx = (h3zero_callback_ctx_t *)picoquic_get_callback_context(cnx);
+        if (h3_ctx == NULL) {
+            return -1;
+        }
+        stream_ctx->ps.stream_state.control_stream_id = stream_ctx->stream_id;
+        return h3zero_declare_stream_prefix(h3_ctx, stream_ctx->stream_id,
+                                            zone_wt_session_callback, path_app_ctx);
     }
 
     return 0;
 }
 
-h3zero_callback_ctx_t *zone_wt_create_context(zone_wt_datagram_cb on_datagram, void *app_ctx)
+picohttp_server_parameters_t *zone_wt_create_context(zone_wt_datagram_cb on_datagram,
+                                                     void *app_ctx)
 {
     zone_wt_session_ctx_t *sctx = calloc(1, sizeof(*sctx));
     if (sctx == NULL) {
@@ -112,29 +134,29 @@ h3zero_callback_ctx_t *zone_wt_create_context(zone_wt_datagram_cb on_datagram, v
     path_table[0].path_callback = zone_wt_connect_callback;
     path_table[0].path_app_ctx = sctx;
 
-    picohttp_server_parameters_t params = {0};
-    params.path_table = path_table;
-    params.path_table_nb = 1;
-
-    h3zero_callback_ctx_t *ctx = h3zero_callback_create_context(&params);
-    if (ctx == NULL) {
+    /* Heap, not a local: h3zero reads these fields every time it builds a
+     * per-connection context, which is long after this function returns. */
+    picohttp_server_parameters_t *params = calloc(1, sizeof(*params));
+    if (params == NULL) {
         free(path_table);
         free(sctx);
         return NULL;
     }
-    return ctx;
+    params->path_table = path_table;
+    params->path_table_nb = 1;
+
+    return params;
 }
 
-void zone_wt_free_context(picoquic_cnx_t *cnx, h3zero_callback_ctx_t *ctx)
+void zone_wt_free_context(picohttp_server_parameters_t *params)
 {
-    if (ctx == NULL) {
+    if (params == NULL) {
         return;
     }
-    /* h3zero_callback_delete_context frees ctx itself (confirmed against
-     * h3zero_common.h's declaration) -- but not path_table or the
-     * zone_wt_session_ctx_t we allocated for it, since those are our
-     * allocations, not h3zero's. That leak is real and left for the
-     * process-exit path (this server has exactly one context, created
-     * once at startup); not a per-connection leak. */
-    h3zero_callback_delete_context(cnx, ctx);
+    if (params->path_table != NULL) {
+        /* path_app_ctx is the zone_wt_session_ctx_t this file allocated. */
+        free(params->path_table[0].path_app_ctx);
+        free((void *)params->path_table);
+    }
+    free(params);
 }

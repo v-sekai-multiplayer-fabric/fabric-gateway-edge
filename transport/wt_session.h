@@ -36,13 +36,32 @@
  * commands is follow-up work once this session layer itself is proven. */
 typedef void (*zone_wt_datagram_cb)(void *app_ctx);
 
-/* Builds the h3zero_callback_ctx_t + path table wiring ZONE_WT_PATH to
- * the WebTransport session callbacks. Returns a context pointer to pass
- * as picoquic_create's default_callback_ctx (with h3zero_callback as
- * default_callback_fn, and default_alpn = "h3"), or NULL on failure. */
-h3zero_callback_ctx_t *zone_wt_create_context(zone_wt_datagram_cb on_datagram, void *app_ctx);
+/* Builds the path table wiring ZONE_WT_PATH to the WebTransport session
+ * callbacks, and returns the picohttp_server_parameters_t naming it --
+ * NOT an h3zero_callback_ctx_t.
+ *
+ * That distinction is the bug this replaces, and it is picoquic's own
+ * contract rather than a preference: h3zero_callback, on the first
+ * packet of a new connection, takes the branch
+ *
+ *     if (callback_ctx == NULL ||
+ *         callback_ctx == picoquic_get_default_callback_context(cnx->quic)) {
+ *         ctx = h3zero_callback_create_context(
+ *             (picohttp_server_parameters_t *)callback_ctx);
+ *
+ * (h3zero_common.c). So whatever is handed to picoquic_create as
+ * default_callback_ctx is cast to picohttp_server_parameters_t* and read
+ * for path_table/path_table_nb/web_folder. Handing it a ready-made
+ * h3zero_callback_ctx_t*, as this file did, reads the path table from
+ * the wrong offset and segfaults on the first packet. h3zero builds a
+ * context per connection itself; nothing here should build one.
+ *
+ * The returned pointer must outlive every connection. Returns NULL on
+ * failure. */
+picohttp_server_parameters_t *zone_wt_create_context(zone_wt_datagram_cb on_datagram,
+                                                     void *app_ctx);
 
-/* cnx may be NULL if the connection is already gone (matches
- * h3zero_callback_delete_context's own tolerance -- confirmed against
- * h3zero_common.h). */
-void zone_wt_free_context(picoquic_cnx_t *cnx, h3zero_callback_ctx_t *ctx);
+/* Frees the parameters and the path table under them. The per-connection
+ * h3zero contexts are not ours: picoquic_free closes every connection,
+ * and each one deletes the context it made for itself. */
+void zone_wt_free_context(picohttp_server_parameters_t *params);

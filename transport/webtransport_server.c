@@ -246,8 +246,8 @@ int webtransport_server_init(webtransport_server_t *server, iox2_waitset_h waits
     /* zone_wt_create_context builds the h3zero path table (ZONE_WT_PATH ->
      * wt_session.c's session callbacks); on_wt_datagram is what a
      * negotiated session's datagrams ultimately drive. */
-    server->wt_ctx = zone_wt_create_context(on_wt_datagram, server);
-    if (server->wt_ctx == NULL) {
+    server->wt_params = zone_wt_create_context(on_wt_datagram, server);
+    if (server->wt_params == NULL) {
         fprintf(stderr, "webtransport_server: zone_wt_create_context failed\n");
         close(server->udp_fd);
         return -1;
@@ -259,7 +259,7 @@ int webtransport_server_init(webtransport_server_t *server, iox2_waitset_h waits
         cert_file, key_file, /* cert_root_file_name */ NULL,
         /* default_alpn */ "h3", /* fixed -- see wt_session.h's header comment
                                      for why this skips alpn_select_fn entirely */
-        h3zero_callback, server->wt_ctx,
+        h3zero_callback, server->wt_params,
         /* cnx_id_callback */ NULL, /* cnx_id_callback_data */ NULL,
         reset_seed,
         picoquic_current_time(), /* current_time */
@@ -269,7 +269,7 @@ int webtransport_server_init(webtransport_server_t *server, iox2_waitset_h waits
 
     if (server->quic == NULL) {
         fprintf(stderr, "webtransport_server: picoquic_create failed\n");
-        zone_wt_free_context(NULL, server->wt_ctx);
+        zone_wt_free_context(server->wt_params);
         close(server->udp_fd);
         return -1;
     }
@@ -374,7 +374,7 @@ void webtransport_server_close(webtransport_server_t *server)
     if (server->quic != NULL) {
         picoquic_free(server->quic);
     }
-    zone_wt_free_context(NULL, server->wt_ctx);
+    zone_wt_free_context(server->wt_params);
     if (server->timer_fd >= 0) {
         close(server->timer_fd);
     }
