@@ -232,7 +232,6 @@ int webtransport_server_init(webtransport_server_t *server, iox2_waitset_h waits
                               fdb_thread_state_t *fdb_state, uint32_t z_id)
 {
     memset(server, 0, sizeof(*server));
-    server->loop = loop;
     server->port = port;
     server->fdb_state = fdb_state;
     server->z_id = z_id;
