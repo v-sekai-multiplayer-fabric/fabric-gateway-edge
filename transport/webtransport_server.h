@@ -75,9 +75,11 @@ typedef struct {
     uint32_t z_id;
     bool zone_in_flight;
 
-    /* H3/WebTransport session context (task #12) -- owns the path table
-     * routing ZONE_WT_PATH to the session callbacks in wt_session.c. */
-    h3zero_callback_ctx_t *wt_ctx;
+    /* The path table routing ZONE_WT_PATH to the session callbacks in
+     * wt_session.c, and the parameters naming it. This is what
+     * picoquic_create takes as default_callback_ctx -- see
+     * wt_session.h for why it is the parameters and not a context. */
+    picohttp_server_parameters_t *wt_params;
 } webtransport_server_t;
 
 /* Binds UDP `port`, creates the picoquic context (cert_file/key_file are
