@@ -24,7 +24,7 @@ So it is the one place with a listening socket, and the one place with nothing w
 
 The packet path is C++, because the transport decodes every datagram and that makes the language a packet-rate decision. `PACKET_PATH.md` has the measurement.
 
-`XRGridEntityPacket`, 100 bytes, specified in `lean-entity-packet` and modelled in Lean with a `packet_golden.csv` of canonical bytes. Anything written here passes those vectors rather than asserting compatibility. **The packet is the schema and the compression is the transport**, so fields stay wide and the stream is delta coded.
+`XRGridEntityPacket`, 100 bytes, specified in `contract-entity-packet` and modelled in Lean with a `packet_golden.csv` of canonical bytes. Anything written here passes those vectors rather than asserting compatibility. **The packet is the schema and the compression is the transport**, so fields stay wide and the stream is delta coded.
 
 TLS is mbedtls through picotls, the backend the Godot client's `WebTransportPeer` uses, so there is one QUIC implementation and one TLS library on both ends; `thirdparty/picoquic-godot-patches` applies. HTTP/3 and WebTransport come from picoquic's own `picohttp` — `h3zero_server.c`, `h3zero_common.c`, `webtransport.c`. This serves no web pages, so it links no HTTP server library.
 
