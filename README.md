@@ -1,4 +1,4 @@
-# transport-gateway
+# transport-gateway-c
 
 The gateway transport layer. It terminates the client transport, decodes client control streams, and hands the result to the control plane over iceoryx2.
 
